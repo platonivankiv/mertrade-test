@@ -88,6 +88,10 @@ check('3. K-002 / B-106 x12: скидки не суммируются, берё�
     assertSame2(3.51, $r->price('K-002', 'B-106', 12));
 });
 
+check('3b. K-001 / B-106 x12: объёмная 3 % и акция 4 % не суммируются, берётся 4 %', function (): void {
+    assertSame2(4, resolver()->discountPercent('K-001', 'B-106', 12));
+});
+
 check('4a. K-004 / B-103: со старым кешем сайт отдаёт 15.48 (поведение кеша, не код)', function (): void {
     assertSame2(15.48, resolver(cacheSeed: __DIR__ . '/../var/cache.orig.json')->price('K-004', 'B-103'));
 });

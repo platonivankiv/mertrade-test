@@ -7,8 +7,11 @@ declare(strict_types=1);
 // Запуск: php monitor.php [--data=data/incident] [--now="2026-10-22 08:20"]
 // Код возврата: 0 — замечаний нет, 1 — есть алерты.
 
+// Время в данных — местное, поэтому пояс задаём явно, а не берём из php.ini.
+date_default_timezone_set('Europe/Minsk');
+
 const CRITICAL = 'critical'; // сразу в чат
-const SUMMARY = 'summary';   // в утреннюю сводку
+const SUMMARY = 'summary';   // в чат без срочности, разбор утром
 
 $opts = getopt('', ['data:', 'now:']);
 $dataDir = $opts['data'] ?? __DIR__ . '/data/incident';
@@ -36,7 +39,7 @@ if ($alerts === []) {
     echo 'Всё в порядке: очередь движется, отчёты магазинов на месте.' . PHP_EOL;
     exit(0);
 }
-foreach ([CRITICAL => 'СРОЧНО (сразу в чат)', SUMMARY => 'В СВОДКУ (утром)'] as $level => $title) {
+foreach ([CRITICAL => 'СРОЧНО (сразу в чат)', SUMMARY => 'НА РАЗБОР УТРОМ'] as $level => $title) {
     $lines = array_filter($alerts, fn(array $a) => $a[0] === $level);
     if ($lines === []) {
         continue;
@@ -103,15 +106,15 @@ function checkRetail(array $rows, DateTimeImmutable $now, array $config): array
         }
     }
 
-    // Пропущенные чеки — ошибка в любой день, смотрим последние сутки.
+    // Пропущенные чеки — ошибка в любой день и при любом errors, смотрим последние сутки.
     $since = $now->modify('-1 day');
     foreach ($rows as $r) {
         $received = new DateTimeImmutable($r['received_at']);
-        if ($received > $since && $received <= $now && (int) $r['skipped'] > 0 && (int) $r['errors'] === 0) {
+        if ($received > $since && $received <= $now && (int) $r['skipped'] > 0) {
             $name = $config['shops'][$r['shop']]['name'] ?? "Магазин {$r['shop']}";
             $alerts[] = [SUMMARY, sprintf(
-                '%s, смена %s (%s): пропущено %d из %d чеков при errors=0',
-                $name, $r['shift'], $r['received_at'], $r['skipped'], $r['receipts'],
+                '%s, смена %s (%s): пропущено %d из %d чеков, errors=%d',
+                $name, $r['shift'], $r['received_at'], $r['skipped'], $r['receipts'], $r['errors'],
             )];
         }
     }
