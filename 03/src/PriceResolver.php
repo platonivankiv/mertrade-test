@@ -51,7 +51,11 @@ final class PriceResolver
     {
         $type = $this->clients[$clientId]['price_type'];
 
-        return $this->prices[$sku][$type] ?? $this->prices[$sku]['RETAIL'];
+        if (!isset($this->prices[$sku][$type])) {
+            throw new RuntimeException("Нет цены {$type} для {$sku}");
+        }
+
+        return $this->prices[$sku][$type];
     }
 
     public function discountPercent(string $clientId, string $sku, int $qty): float
@@ -63,10 +67,10 @@ final class PriceResolver
                 continue;
             }
             if ($rule['type'] === 'volume' && $qty >= $rule['min_qty']) {
-                $percent += $rule['percent'];
+                $percent = max($percent, $rule['percent']);
             }
             if ($rule['type'] === 'promo' && $rule['category'] === $this->products[$sku]['category']) {
-                $percent += $rule['percent'];
+                $percent = max($percent, $rule['percent']);
             }
         }
 
@@ -75,9 +79,11 @@ final class PriceResolver
 
     private function isActive(array $rule): bool
     {
-        $today = $this->now->format('d.m.Y');
+        $today = $this->now->format('Y-m-d');
+        $from = DateTimeImmutable::createFromFormat('!d.m.Y', $rule['valid_from'])->format('Y-m-d');
+        $to = DateTimeImmutable::createFromFormat('!d.m.Y', $rule['valid_to'])->format('Y-m-d');
 
-        return $today >= $rule['valid_from'] && $today <= $rule['valid_to'];
+        return $today >= $from && $today <= $to;
     }
 
     public function price(string $clientId, string $sku, int $qty = 1): float
