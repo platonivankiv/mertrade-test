@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php:*)",
+      "Bash(composer:*)",
+      "Bash(vendor/bin/phpunit:*)",
+      "Bash(grep:*)",
+      "Bash(awk:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(git status)",
+      "Bash(git diff:*)"
+    ],
+    "deny": [
+      "Edit(materials/**)",
+      "Write(materials/**)"
+    ]
+  }
+}
